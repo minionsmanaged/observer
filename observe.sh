@@ -34,6 +34,7 @@ for workerPool in ${workerPools[@]}; do
   done
 done
 
+git --git-dir=${tmp_dir}/observations/.git --work-tree=${tmp_dir}/observations pull >> ${HOME}/cron/log/minionsmanaged-observer/$(/usr/bin/date -u '+%Y-%m-%d').log
 git --git-dir=${tmp_dir}/observations/.git --work-tree=${tmp_dir}/observations add . -A >> ${HOME}/cron/log/minionsmanaged-observer/$(/usr/bin/date -u '+%Y-%m-%d').log
 git --git-dir=${tmp_dir}/observations/.git --work-tree=${tmp_dir}/observations commit -m "observations of running instances in aws" >> ${HOME}/cron/log/minionsmanaged-observer/$(/usr/bin/date -u '+%Y-%m-%d').log
 git --git-dir=${tmp_dir}/observations/.git --work-tree=${tmp_dir}/observations push origin master >> ${HOME}/cron/log/minionsmanaged-observer/$(/usr/bin/date -u '+%Y-%m-%d').log
