@@ -9,9 +9,9 @@ regions=(eu-central-1 us-east-1 us-west-1 us-west-2)
 tmp_dir=$(mktemp -d)
 
 git clone git@github.com:minionsmanaged/observations.git ${tmp_dir}/observations >> ${HOME}/cron/log/minionsmanaged-observer/$(/usr/bin/date -u '+%Y-%m-%d').log
-if [ -d ${tmp_dir}/observations/workers ]; then
-  rm -Rf ${tmp_dir}/observations/workers >> ${HOME}/cron/log/minionsmanaged-observer/$(/usr/bin/date -u '+%Y-%m-%d').log
-fi
+#if [ -d ${tmp_dir}/observations/workers ]; then
+#  rm -Rf ${tmp_dir}/observations/workers >> ${HOME}/cron/log/minionsmanaged-observer/$(/usr/bin/date -u '+%Y-%m-%d').log
+#fi
 
 for region in ${regions[@]}; do
   aws ec2 describe-instances --region ${region} --filters Name=tag:ManagedBy,Values=taskcluster Name=instance-state-name,Values=running --query 'Reservations[*].Instances[*].{InstanceId:InstanceId,ImageId:ImageId,WorkerPool:Tags[?Key==`Name`]|[0].Value,AvailabilityZone:Placement.AvailabilityZone,LaunchTime:LaunchTime,PublicIpAddress:PublicIpAddress,InstanceLifecycle:InstanceLifecycle}' | jq '[.[][]]' > ${tmp_dir}/${region}.json
@@ -30,7 +30,18 @@ for workerPool in ${workerPools[@]}; do
   mkdir -p ${tmp_dir}/observations/workers/${workerPool}
   instance_id_list=$(jq -r --arg workerPool ${workerPool} '[.[] | select(.WorkerPool == $workerPool) | .InstanceId] | unique | sort | .[]' ${tmp_dir}/all.json)
   for instance_id in ${instance_id_list[@]}; do
-    jq --arg instanceId ${instance_id} '.[] | select(.InstanceId == $instanceId)' ${tmp_dir}/all.json > ${tmp_dir}/observations/workers/${workerPool}/${instance_id}.json
+    if [ ! -f ${tmp_dir}/observations/workers/${workerPool}/${instance_id}.json ]; then
+      jq --arg instanceId ${instance_id} '.[] | select(.InstanceId == $instanceId)' ${tmp_dir}/all.json > ${tmp_dir}/observations/workers/${workerPool}/${instance_id}.json
+    fi
+  done
+  shopt -s nullglob
+  workerPaths=(${tmp_dir}/observations/workers/${workerPool}/*.json)
+  for workerPath in ${workerPaths[@]}; do
+    workerFileBasename=$(basename -- ${workerPath})
+    workerInstanceId="${workerFileBasename%.*}"
+    if [[ ! " ${instance_id_list[@]} " =~ " ${workerInstanceId} " ]]; then
+      rm -f ${workerPath}
+    fi
   done
 done
 
