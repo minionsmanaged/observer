@@ -34,17 +34,18 @@ for workerPool in ${workerPools[@]}; do
       jq --arg instanceId ${instance_id} '.[] | select(.InstanceId == $instanceId)' ${tmp_dir}/all.json > ${tmp_dir}/observations/workers/${workerPool}/${instance_id}.json
     fi
   done
-  shopt -s nullglob
-  workerPaths=(${tmp_dir}/observations/workers/${workerPool}/*.json)
-  for workerPath in ${workerPaths[@]}; do
-    workerFileBasename=$(basename -- ${workerPath})
-    workerInstanceId="${workerFileBasename%.*}"
-    if [[ ! " ${instance_id_list[@]} " =~ " ${workerInstanceId} " ]]; then
-      rm -f ${workerPath}
-    fi
-  done
+  # todo: put deletions into a new cron job
+  #shopt -s nullglob
+  #workerPaths=(${tmp_dir}/observations/workers/${workerPool}/*.json)
+  #for workerPath in ${workerPaths[@]}; do
+  #  workerFileBasename=$(basename -- ${workerPath})
+  #  workerInstanceId="${workerFileBasename%.*}"
+  #  if [[ ! " ${instance_id_list[@]} " =~ " ${workerInstanceId} " ]]; then
+  #    rm -f ${workerPath}
+  #  fi
+  #done
 done
-
+git --git-dir=${tmp_dir}/observations/.git --work-tree=${tmp_dir}/observations config diff.renames false
 git --git-dir=${tmp_dir}/observations/.git --work-tree=${tmp_dir}/observations pull >> ${HOME}/cron/log/minionsmanaged-observer/$(/usr/bin/date -u '+%Y-%m-%d').log
 git --git-dir=${tmp_dir}/observations/.git --work-tree=${tmp_dir}/observations add . -A >> ${HOME}/cron/log/minionsmanaged-observer/$(/usr/bin/date -u '+%Y-%m-%d').log
 git --git-dir=${tmp_dir}/observations/.git --work-tree=${tmp_dir}/observations commit -m "observations of running instances in aws" >> ${HOME}/cron/log/minionsmanaged-observer/$(/usr/bin/date -u '+%Y-%m-%d').log
